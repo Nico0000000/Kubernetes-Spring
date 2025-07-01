@@ -1,0 +1,56 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: myapp-release
+  namespace: default
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./coolerchart
+      sourceRef:
+        kind: GitRepository
+        name: myapp-source
+        namespace: flux-system
+  values:
+    replicaCount: 2
+
+    image:
+      repository: nicomic1/springboot-application-aws
+      tag: "1.0.0"
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 8080
+      targetPort: 8080
+
+    env:
+      - name: NODE_ENV
+        value: "production"
+      - name: API_URL
+        value: "https://api.example.com"
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 256Mi
+      requests:
+        cpu: 200m
+        memory: 128Mi
+
+    ingress:
+      enabled: true
+      className: nginx
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/rewrite-target: /
+      hosts:
+        - host: myapp.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - hosts:
+            - myapp.example.com
+          secretName: myapp-tls
