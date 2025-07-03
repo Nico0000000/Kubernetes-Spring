@@ -1,0 +1,124 @@
+---
+# Source: coolerchart/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mychart-coolerchart
+  labels:
+    helm.sh/chart: coolerchart-0.1.1
+    app.kubernetes.io/name: coolerchart
+    app.kubernetes.io/instance: mychart
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+automountServiceAccountToken: true
+---
+# Source: coolerchart/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mychart-coolerchart
+  labels:
+    helm.sh/chart: coolerchart-0.1.1
+    app.kubernetes.io/name: coolerchart
+    app.kubernetes.io/instance: mychart
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: coolerchart
+    app.kubernetes.io/instance: mychart
+---
+# Source: coolerchart/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mychart-coolerchart
+  labels:
+    helm.sh/chart: coolerchart-0.1.1
+    app.kubernetes.io/name: coolerchart
+    app.kubernetes.io/instance: mychart
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: coolerchart
+      app.kubernetes.io/instance: mychart
+  template:
+    metadata:
+      labels:
+        helm.sh/chart: coolerchart-0.1.1
+        app.kubernetes.io/name: coolerchart
+        app.kubernetes.io/instance: mychart
+        app.kubernetes.io/version: "1.16.0"
+        app.kubernetes.io/managed-by: Helm
+    spec:
+      serviceAccountName: mychart-coolerchart
+      containers:
+        - name: coolerchart
+          image: "springboot-application-aws:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+---
+# Source: coolerchart/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mychart-coolerchart
+  labels:
+    helm.sh/chart: coolerchart-0.1.1
+    app.kubernetes.io/name: coolerchart
+    app.kubernetes.io/instance: mychart
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  rules:
+    - host: "coolerkek.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mychart-coolerchart
+                port:
+                  number: 8080
+---
+# Source: coolerchart/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "mychart-coolerchart-test-connection"
+  labels:
+    helm.sh/chart: coolerchart-0.1.1
+    app.kubernetes.io/name: coolerchart
+    app.kubernetes.io/instance: mychart
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['mychart-coolerchart:8080']
+  restartPolicy: Never
